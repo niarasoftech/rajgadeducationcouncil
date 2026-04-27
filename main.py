@@ -129,7 +129,8 @@ def submit():
 
         conn.commit()
         cur.close()
-
+        print("FORM HIT ✅")
+        print(request.form)
         return jsonify({"message": "Admission Submitted Successfully ✅"})
 
     except Exception as e:
