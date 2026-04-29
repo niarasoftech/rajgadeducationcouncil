@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ===============================
-# CONFIG (UPLOAD PATH FIXED)
+# CONFIG (FIXED PATH)
 # ===============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'uploads'))
@@ -20,66 +20,57 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ===============================
-# DB CONFIG (USE ENV VARIABLES)
+# DB CONFIG
 # ===============================
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "port": int(os.getenv("DB_PORT", 5432))
+    "host": "db.ivcvxvuzlaujxraqqgdp.supabase.co",
+    "database": "postgres",
+    "user": "postgres",
+    "password": "niarasoftech",
+    "port": 5432
 }
 
-# ===============================
-# DB CONNECTION
-# ===============================
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 # ===============================
-# CREATE TABLE (SAFE)
+# CREATE TABLE
 # ===============================
 def create_table():
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
+    conn = get_connection()
+    cur = conn.cursor()
 
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS students (
-            id SERIAL PRIMARY KEY,
-            candidate_name TEXT,
-            dob TEXT,
-            father_name TEXT,
-            mother_name TEXT,
-            email TEXT,
-            mobile TEXT,
-            address TEXT,
-            city TEXT,
-            state TEXT,
-            pincode TEXT,
-            school_10 TEXT,
-            school_12 TEXT,
-            marks TEXT,
-            course TEXT,
-            photo TEXT,
-            id_proof TEXT,
-            marksheet_10 TEXT,
-            marksheet_12 TEXT,
-            leaving_certificate TEXT,
-            payment_proof TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS students (
+        id SERIAL PRIMARY KEY,
+        candidate_name TEXT,
+        dob TEXT,
+        father_name TEXT,
+        mother_name TEXT,
+        email TEXT,
+        mobile TEXT,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        pincode TEXT,
+        school_10 TEXT,
+        school_12 TEXT,
+        marks TEXT,
+        course TEXT,
+        photo TEXT,
+        id_proof TEXT,
+        marksheet_10 TEXT,
+        marksheet_12 TEXT,
+        leaving_certificate TEXT,
+        payment_proof TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
 
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("Table ready ✅")
+    conn.commit()
+    cur.close()
+    conn.close()
 
-    except Exception as e:
-        print("DB connection failed:", e)
-
-# ⚠️ Safe call (won’t crash app)
 create_table()
 
 # ===============================
@@ -99,7 +90,7 @@ def save_file(file):
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(filepath)
 
-        return unique_name
+        return unique_name   # ✅ ONLY filename stored
 
     return None
 
@@ -112,7 +103,7 @@ def home():
     return "Server running ✅"
 
 
-# ✅ Serve uploaded files
+# ✅ Serve uploaded files (IMPORTANT)
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -181,7 +172,7 @@ def submit():
         }), 500
 
 
-# ✅ Get students
+# ✅ Get all students
 @app.route('/students', methods=['GET'])
 def get_students():
     try:
@@ -192,6 +183,7 @@ def get_students():
         rows = cur.fetchall()
 
         columns = [desc[0] for desc in cur.description]
+
         data = [dict(zip(columns, row)) for row in rows]
 
         cur.close()
@@ -204,8 +196,7 @@ def get_students():
 
 
 # ===============================
-# RUN (RENDER READY)
+# RUN
 # ===============================
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
