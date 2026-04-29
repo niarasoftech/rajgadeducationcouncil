@@ -9,68 +9,75 @@ app = Flask(__name__)
 CORS(app)
 
 # ===============================
-# CONFIG (FIXED PATH)
+# CONFIG (UPLOAD PATH)
 # ===============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'uploads'))
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+
 # ===============================
-# DB CONFIG
+# DB CONFIG (FROM ENV)
 # ===============================
 DB_CONFIG = {
-    "host": "db.ivcvxvuzlaujxraqqgdp.supabase.co",
-    "database": "postgres",
-    "user": "postgres",
-    "password": "niarasoftech",
-    "port": 5432
+    "host": os.getenv("DB_HOST"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "port": int(os.getenv("DB_PORT", 5432))
 }
 
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 # ===============================
-# CREATE TABLE
+# SAFE TABLE CREATION
 # ===============================
 def create_table():
-    conn = get_connection()
-    cur = conn.cursor()
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS students (
-        id SERIAL PRIMARY KEY,
-        candidate_name TEXT,
-        dob TEXT,
-        father_name TEXT,
-        mother_name TEXT,
-        email TEXT,
-        mobile TEXT,
-        address TEXT,
-        city TEXT,
-        state TEXT,
-        pincode TEXT,
-        school_10 TEXT,
-        school_12 TEXT,
-        marks TEXT,
-        course TEXT,
-        photo TEXT,
-        id_proof TEXT,
-        marksheet_10 TEXT,
-        marksheet_12 TEXT,
-        leaving_certificate TEXT,
-        payment_proof TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS students (
+            id SERIAL PRIMARY KEY,
+            candidate_name TEXT,
+            dob TEXT,
+            father_name TEXT,
+            mother_name TEXT,
+            email TEXT,
+            mobile TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pincode TEXT,
+            school_10 TEXT,
+            school_12 TEXT,
+            marks TEXT,
+            course TEXT,
+            photo TEXT,
+            id_proof TEXT,
+            marksheet_10 TEXT,
+            marksheet_12 TEXT,
+            leaving_certificate TEXT,
+            payment_proof TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
+        cur.close()
+        conn.close()
 
+        print("Table ready ✅")
+
+    except Exception as e:
+        print("DB connection failed:", e)
+
+# ⚠️ Do NOT crash app if DB fails
 create_table()
 
 # ===============================
@@ -90,7 +97,7 @@ def save_file(file):
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(filepath)
 
-        return unique_name   # ✅ ONLY filename stored
+        return unique_name
 
     return None
 
@@ -103,13 +110,11 @@ def home():
     return "Server running ✅"
 
 
-# ✅ Serve uploaded files (IMPORTANT)
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# ✅ Submit form
 @app.route('/submit', methods=['POST'])
 def submit():
     try:
@@ -160,21 +165,14 @@ def submit():
         cur.close()
         conn.close()
 
-        return jsonify({
-            "status": "success",
-            "message": "Admission Submitted Successfully ✅"
-        })
+        return jsonify({"status": "success"})
 
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 
-# ✅ Get all students
-@app.route('/students', methods=['GET'])
-def get_students():
+@app.route('/students')
+def students():
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -183,7 +181,6 @@ def get_students():
         rows = cur.fetchall()
 
         columns = [desc[0] for desc in cur.description]
-
         data = [dict(zip(columns, row)) for row in rows]
 
         cur.close()
@@ -196,7 +193,8 @@ def get_students():
 
 
 # ===============================
-# RUN
+# RUN (RENDER SAFE)
 # ===============================
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
