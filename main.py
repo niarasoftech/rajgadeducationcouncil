@@ -3,22 +3,25 @@ from flask_cors import CORS
 import psycopg2
 import os
 from werkzeug.utils import secure_filename
-from datetime import datetime
+import uuid
 
 app = Flask(__name__)
 CORS(app)
 
 # ===============================
-# CONFIG
+# CONFIG (FIXED PATH)
 # ===============================
-UPLOAD_FOLDER = 'uploads'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'uploads'))
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# ===============================
 # DB CONFIG
+# ===============================
 DB_CONFIG = {
     "host": "db.ivcvxvuzlaujxraqqgdp.supabase.co",
     "database": "postgres",
@@ -27,9 +30,6 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# ===============================
-# DB CONNECTION FUNCTION
-# ===============================
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
 
@@ -74,7 +74,7 @@ def create_table():
 create_table()
 
 # ===============================
-# FILE VALIDATION
+# FILE HANDLING
 # ===============================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -85,11 +85,12 @@ def save_file(file):
             raise Exception("Invalid file type")
 
         filename = secure_filename(file.filename)
-        unique_name = str(int(datetime.now().timestamp())) + "_" + filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+        unique_name = f"{uuid.uuid4().hex}_{filename}"
 
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(filepath)
-        return f"uploads/{unique_name}"
+
+        return unique_name   # ✅ ONLY filename stored
 
     return None
 
@@ -102,7 +103,7 @@ def home():
     return "Server running ✅"
 
 
-# ✅ Serve uploaded files
+# ✅ Serve uploaded files (IMPORTANT)
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -171,21 +172,19 @@ def submit():
         }), 500
 
 
-# ✅ Get all students (CLEAN JSON)
+# ✅ Get all students
 @app.route('/students', methods=['GET'])
 def get_students():
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT * FROM students ORDER BY id DESC")
+        cur.execute("SELECT * FROM students ORDER BY id ASC")
         rows = cur.fetchall()
 
         columns = [desc[0] for desc in cur.description]
 
-        data = []
-        for row in rows:
-            data.append(dict(zip(columns, row)))
+        data = [dict(zip(columns, row)) for row in rows]
 
         cur.close()
         conn.close()
