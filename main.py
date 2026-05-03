@@ -58,12 +58,6 @@ def create_table():
             school_12 TEXT,
             marks TEXT,
             course TEXT,
-            photo TEXT,
-            id_proof TEXT,
-            marksheet_10 TEXT,
-            marksheet_12 TEXT,
-            leaving_certificate TEXT,
-            payment_proof TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -110,9 +104,7 @@ def home():
     return "Server running ✅"
 
 
-@app.route('/uploads/<path:filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 
 @app.route('/submit', methods=['POST'])
@@ -120,12 +112,7 @@ def submit():
     try:
         data = request.form
 
-        photo = save_file(request.files.get('photo'))
-        id_proof = save_file(request.files.get('id_proof'))
-        marksheet_10 = save_file(request.files.get('marksheet_10'))
-        marksheet_12 = save_file(request.files.get('marksheet_12'))
-        leaving_certificate = save_file(request.files.get('leaving_certificate'))
-        payment_proof = save_file(request.files.get('payment_proof'))
+        
 
         conn = get_connection()
         cur = conn.cursor()
@@ -153,12 +140,7 @@ def submit():
             data.get('school_12'),
             data.get('marks'),
             data.get('course'),
-            photo,
-            id_proof,
-            marksheet_10,
-            marksheet_12,
-            leaving_certificate,
-            payment_proof
+            
         ))
 
         conn.commit()
