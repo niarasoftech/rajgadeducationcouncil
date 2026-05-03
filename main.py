@@ -121,10 +121,8 @@ def submit():
             INSERT INTO students (
                 candidate_name, dob, father_name, mother_name,
                 email, mobile, address, city, state, pincode,
-                school_10, school_12, marks, course,
-                photo, id_proof, marksheet_10, marksheet_12,
-                leaving_certificate, payment_proof
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                school_10, school_12, marks, course
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             data.get('candidate_name'),
             data.get('dob'),
